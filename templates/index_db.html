@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double's Plan DB Viewer</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #1e272e; color: #d2dae2; margin: 0; padding: 10px; text-align: center; font-size: 14px; }
+        .container { background: #2c3e50; padding: 15px; border-radius: 12px; max-width: 500px; margin: 0 auto; text-align: left; }
+        h2 { text-align: center; color: #0fbcf9; margin-top: 0; margin-bottom: 10px; }
+        h3 { text-align: center; font-size: 16px; margin-top: 0; margin-bottom: 10px; color: #f1c40f;}
+        .section { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        select { padding: 6px; border-radius: 5px; border: none; font-size: 14px; outline: none; background: #ecf0f1; box-sizing: border-box;}
+        select#round { width: 35%; }
+        select#player { width: 60%; }
+        .pos-label { font-weight: bold; color: #0be881; text-align: center; margin: 8px 0; font-size: 15px; }
+        
+        /* 카드 버튼 공통 스타일 */
+        .card-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 8px; }
+        .card-btn { padding: 8px 0; font-size: 15px; font-weight: bold; border: 2px solid transparent; border-radius: 5px; cursor: pointer; transition: 0.1s; background: #ecf0f1; color: #95a5a6; }
+        .card-btn.active.black { background: #1e272e; color: #fff; border-color: #0fbcf9; }
+        .card-btn.active.red { background: #ff3f34; color: #fff; border-color: #ffd32a; }
+        .card-btn.played { background: #2f3640; color: #7f8c8d; border: 2px dashed #7f8c8d; text-decoration: line-through; cursor: not-allowed; opacity: 0.5; }
+        
+        /* 양방향 계산기용 특수 비활성화 스타일 */
+        .card-btn.p0-owned { background: rgba(11, 232, 129, 0.2); color: #0be881; cursor: not-allowed; pointer-events: none;}
+        .card-btn.p1-owned { background: rgba(255, 63, 52, 0.2); color: #ff3f34; cursor: not-allowed; pointer-events: none;}
+
+        .hist-row { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px; margin-bottom: 6px; }
+        .hist-inputs { display: flex; gap: 4px; align-items: center; justify-content: center; }
+        .hist-inputs input { width: 45px; text-align: center; font-weight: bold; padding: 6px; font-size: 15px; border-radius: 4px; border: none;}
+        
+        .score-group-wrapper { display: none; flex-direction: column; margin-top: 8px; border-top: 1px dashed #7f8c8d; padding-top: 5px;}
+        .score-group { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+        .score-btn { flex: 1; padding: 6px 0; font-size: 12px; font-weight: bold; background: #7f8c8d; color: white; border: none; border-radius: 4px; cursor: pointer; opacity: 0.6; }
+        .score-btn.active { opacity: 1; transform: scale(1.05); }
+        .score-btn.plus2.active { background-color: #2ecc71; } 
+        .score-btn.plus1.active { background-color: #27ae60; } 
+        .score-btn.minus1.active { background-color: #e67e22; } 
+        .score-btn.minus2.active { background-color: #e74c3c; } 
+        
+        .btn-search { width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #0fbcf9; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 5px; }
+        #result-box { margin-top: 15px; padding: 12px; background-color: #000; border-radius: 8px; font-family: monospace; font-size: 13px; display: none; }
+        .format-notice { font-size: 12px; color: #f1c40f; text-align: center; margin-bottom: 8px; font-weight: bold; background: rgba(241, 196, 15, 0.1); padding: 5px; border-radius: 5px;}
+        
+        /* 💡 추가된 네비게이션 버튼 스타일 */
+        .btn-nav { width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #7f8c8d; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.1s; }
+        .btn-nav:active { transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <button class="btn-nav" onclick="location.href='/'">🚪 메인 로비로 돌아가기</button>
+
+        <h2>⚡ 초고속 DB 뷰어 (스마트 패관리)</h2>
+        
+        <div class="section">
+            <div class="row">
+                <label>시점:</label>
+                <select id="player" onchange="updateUI()"><option value="P0">P0 (나, 1R 선공)</option><option value="P1">P1 (나, 1R 후공)</option></select>
+            </div>
+            <div class="row">
+                <label>현재:</label>
+                <select id="round" onchange="updateUI()">
+                    <option value="1">1 R</option><option value="2">2 R</option><option value="3">3 R</option><option value="4">4 R</option><option value="5">5 R</option>
+                </select>
+                <div id="pos-display" class="pos-label">IP (후공)</div>
+            </div>
+            <div class="row" id="color-section" style="display: none; justify-content: center; gap: 10px; margin-top: 5px;">
+                <label style="color: #ffdd59; font-weight: bold;">상대 낸 색깔:</label>
+                <select id="color" style="width: 40%;"><option value="Red">빨강</option><option value="Black">검정</option></select>
+            </div>
+        </div>
+
+        <div class="section">
+            <label style="font-weight: bold;">처음 손패 5장 (히스토리 쓰면 자동 차감)</label>
+            <div class="card-grid" id="main-hand-container"></div>
+        </div>
+
+        <div class="section" id="history-section">
+            <label style="font-weight: bold;">히스토리 (모를 때만 ? 입력)</label>
+            <div class="format-notice">※ 입력 규칙: [ P0 카드 ] vs [ P1 카드 ]</div>
+            <div id="history-inputs" style="margin-top: 5px;"></div>
+        </div>
+
+        <button class="btn-search" onclick="searchGTO()">🚀 1. 내 패 기준 GTO 탐색 & 평균 EV 계산</button>
+        <div id="result-box"></div>
+
+        <div class="section" style="margin-top: 25px; border: 2px dashed #0fbcf9; background: rgba(15, 188, 249, 0.05);">
+            <h3 style="color: #0fbcf9; margin-top: 5px; margin-bottom: 10px;">⚖️ 양방향 패맞춤 EV 계산기 (Perfect Info)</h3>
+            
+            <div id="exact-notice" class="format-notice" style="background: rgba(0, 0, 0, 0.4); color: #d2dae2; border: 1px solid #7f8c8d; padding: 8px;">
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <label style="color: #0be881; font-weight: bold;">[P0] 패 선택</label>
+                <div class="card-grid" id="p0-toggle-container"></div>
+            </div>
+            <div style="margin-top: 15px;">
+                <label style="color: #ff3f34; font-weight: bold;">[P1] 패 선택</label>
+                <div class="card-grid" id="p1-toggle-container"></div>
+            </div>
+            
+            <button class="btn-search" style="background-color: #f39c12; margin-top: 15px;" onclick="calcExactEV()">🔥 2. 맞교환 시 수학적 절대 기댓값 계산</button>
+            <div id="exact-ev-result" style="margin-top: 15px; padding: 12px; background-color: #000; border-radius: 8px; font-family: monospace; display: none;"></div>
+        </div>
+
+        <button class="btn-nav" style="margin-top: 20px; margin-bottom: 0;" onclick="location.href='/'">🚪 메인 로비로 돌아가기</button>
+
+    </div>
+
+    <script>
+        // 💡 [STEP 1] 백엔드 서버 주소 설정
+        const BACKEND_URL = "http://localhost:8000";
+        const blackCards = [1, 2, 10, 11, 12];
+        let selectedHands = new Set();
+        let exactP0Hands = new Set();
+        let exactP1Hands = new Set();
+        let roundScores = { 1: 1, 2: 1, 3: 1, 4: 1 };
+        let savedHistoryInputs = {};
+
+        function initAllCardGrids() {
+            const mainContainer = document.getElementById('main-hand-container');
+            const p0Container = document.getElementById('p0-toggle-container');
+            const p1Container = document.getElementById('p1-toggle-container');
+            
+            for (let i = 1; i <= 12; i++) {
+                let btn = document.createElement('button');
+                btn.id = `card-btn-${i}`;
+                btn.className = 'card-btn';
+                btn.innerText = i;
+                btn.onclick = () => toggleMainHand(i);
+                mainContainer.appendChild(btn);
+                
+                let p0btn = document.createElement('button');
+                p0btn.id = `p0-btn-${i}`;
+                p0btn.className = 'card-btn';
+                p0btn.innerText = i;
+                p0btn.onclick = () => toggleExactP0(i);
+                p0Container.appendChild(p0btn);
+                
+                let p1btn = document.createElement('button');
+                p1btn.id = `p1-btn-${i}`;
+                p1btn.className = 'card-btn';
+                p1btn.innerText = i;
+                p1btn.onclick = () => toggleExactP1(i);
+                p1Container.appendChild(p1btn);
+            }
+        }
+
+        function toggleMainHand(i) {
+            let btn = document.getElementById(`card-btn-${i}`);
+            if (btn.classList.contains('played')) return;
+            if (selectedHands.has(i)) { 
+                selectedHands.delete(i); 
+                btn.classList.remove('active', 'black', 'red'); 
+            } else { 
+                selectedHands.add(i); 
+                btn.classList.add('active'); 
+                btn.classList.add(blackCards.includes(i) ? 'black' : 'red'); 
+            }
+        }
+
+        function toggleExactP0(i) {
+            let p0btn = document.getElementById(`p0-btn-${i}`);
+            if (p0btn.classList.contains('played')) return; 
+            if (p0btn.classList.contains('p1-owned')) return; 
+            
+            if (exactP0Hands.has(i)) exactP0Hands.delete(i);
+            else exactP0Hands.add(i);
+            
+            updateExactUI(); 
+        }
+
+        function toggleExactP1(i) {
+            let p1btn = document.getElementById(`p1-btn-${i}`);
+            if (p1btn.classList.contains('played')) return; 
+            if (p1btn.classList.contains('p0-owned')) return; 
+            
+            if (exactP1Hands.has(i)) exactP1Hands.delete(i);
+            else exactP1Hands.add(i);
+            
+            updateExactUI(); 
+        }
+
+        function getPlayedCards() {
+            let played = new Set();
+            const round = parseInt(document.getElementById('round').value);
+
+            for (let i = 1; i < round; i++) {
+                let p0Input = document.getElementById(`hist-p0-${i}`);
+                let p1Input = document.getElementById(`hist-p1-${i}`);
+                if (!p0Input || !p1Input) continue;
+
+                if (p0Input.value && !isNaN(p0Input.value) && p0Input.value !== '?') played.add(parseInt(p0Input.value));
+                if (p1Input.value && !isNaN(p1Input.value) && p1Input.value !== '?') played.add(parseInt(p1Input.value));
+            }
+            return played;
+        }
+
+        function updateCardUI() {
+            updateMainUI();
+            updateExactUI();
+        }
+
+        function updateMainUI() {
+            let playedCards = getPlayedCards();
+            for (let i = 1; i <= 12; i++) {
+                let btn = document.getElementById(`card-btn-${i}`);
+                if (!btn) continue;
+                btn.classList.remove('active', 'black', 'red', 'played');
+                if (playedCards.has(i)) btn.classList.add('played'); 
+                else if (selectedHands.has(i)) {
+                    btn.classList.add('active'); 
+                    btn.classList.add(blackCards.includes(i) ? 'black' : 'red');
+                }
+            }
+        }
+
+        function updateExactUI() {
+            let playedCards = getPlayedCards();
+            
+            for (let i = 1; i <= 12; i++) {
+                let btn = document.getElementById(`p0-btn-${i}`);
+                if (!btn) continue;
+                btn.classList.remove('active', 'black', 'red', 'played', 'p1-owned');
+                
+                if (playedCards.has(i)) btn.classList.add('played');
+                else if (exactP0Hands.has(i)) {
+                    btn.classList.add('active'); 
+                    btn.classList.add(blackCards.includes(i) ? 'black' : 'red');
+                } else if (exactP1Hands.has(i)) {
+                    btn.classList.add('p1-owned');
+                }
+            }
+            
+            for (let i = 1; i <= 12; i++) {
+                let btn = document.getElementById(`p1-btn-${i}`);
+                if (!btn) continue;
+                btn.classList.remove('active', 'black', 'red', 'played', 'p0-owned');
+                
+                if (playedCards.has(i)) btn.classList.add('played');
+                else if (exactP1Hands.has(i)) {
+                    btn.classList.add('active'); 
+                    btn.classList.add(blackCards.includes(i) ? 'black' : 'red');
+                } else if (exactP0Hands.has(i)) {
+                    btn.classList.add('p0-owned');
+                }
+            }
+            
+            const round = parseInt(document.getElementById('round').value);
+            const target = 6 - round;
+            
+            const p0HandLen = Array.from(exactP0Hands).filter(c => !playedCards.has(c)).length;
+            const p1HandLen = Array.from(exactP1Hands).filter(c => !playedCards.has(c)).length;
+            
+            let html = `위의 상단 '히스토리' 정보가 <b>자동 연동 및 제외</b>됩니다.<br>
+                        처음 손패 5장, 또는 남은 패만 찍어도 <b>히스토리 카드는 알아서 빼고 계산</b>됩니다.<br>
+                        현재 순수하게 남은 패: <span style="color:#0be881; font-weight:bold;">P0 ${p0HandLen}장</span> / <span style="color:#ff3f34; font-weight:bold;">P1 ${p1HandLen}장</span> (목표: ${target}장)`;
+            const exactNotice = document.getElementById('exact-notice');
+            if (exactNotice) exactNotice.innerHTML = html;
+        }
+
+        function setRoundScore(round, score, btn) {
+            roundScores[round] = score;
+            btn.closest('.score-group').querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function checkQuestionMark(round) {
+            const p0Input = document.getElementById(`hist-p0-${round}`);
+            const p1Input = document.getElementById(`hist-p1-${round}`);
+            if (!p0Input || !p1Input) return;
+            const p0 = p0Input.value.trim();
+            const p1 = p1Input.value.trim();
+            const wrapper = document.getElementById(`score-wrapper-${round}`);
+            if (p0 === '?' || p1 === '?') wrapper.style.display = 'flex';
+            else wrapper.style.display = 'none';
+        }
+
+        function handleHistoryInput(round) {
+            checkQuestionMark(round);
+            updateCardUI(); 
+        }
+
+        function updateUI() {
+            const player = document.getElementById('player').value;
+            const round = parseInt(document.getElementById('round').value);
+            let isOOP = (player === "P0") ? (round % 2 !== 0) : (round % 2 === 0);
+
+            const posDisplay = document.getElementById('pos-display');
+            posDisplay.innerText = isOOP ? "선공 (OOP)" : "후공 (IP)";
+            posDisplay.style.color = isOOP ? "#ff9f43" : "#0be881";
+            document.getElementById('color-section').style.display = isOOP ? "none" : "flex";
+
+            for (let i = 1; i <= 5; i++) {
+                let p0Input = document.getElementById(`hist-p0-${i}`);
+                let p1Input = document.getElementById(`hist-p1-${i}`);
+                if (p0Input && p1Input) {
+                    savedHistoryInputs[i] = { p0: p0Input.value, p1: p1Input.value };
+                }
+            }
+
+            const histContainer = document.getElementById('history-inputs');
+            histContainer.innerHTML = round === 1 ? "<div style='color:#95a5a6; text-align:center; padding:10px;'>히스토리 없음</div>" : "";
+            
+            for (let i = 1; i < round; i++) {
+                let div = document.createElement('div');
+                div.className = "hist-row";
+                let s = roundScores[i];
+                div.innerHTML = `
+                    <div class="hist-inputs">
+                        <span style="color:#0fbcf9; font-weight:bold;">${i}R:</span>
+                        <input type="text" id="hist-p0-${i}" placeholder="P0" oninput="handleHistoryInput(${i})">
+                        <span style="color:#bdc3c7;">vs</span>
+                        <input type="text" id="hist-p1-${i}" placeholder="P1" oninput="handleHistoryInput(${i})">
+                    </div>
+                    <div id="score-wrapper-${i}" class="score-group-wrapper">
+                        <div style="color:#f1c40f; text-align:center; font-size:11px; margin-bottom:2px;">? 감지됨: 내 점수 실적을 선택하세요</div>
+                        <div class="score-group">
+                            <button class="score-btn plus2 ${s==2?'active':''}" onclick="setRoundScore(${i}, 2, this)">+2 (더블승)</button>
+                            <button class="score-btn plus1 ${s==1?'active':''}" onclick="setRoundScore(${i}, 1, this)">+1 (승)</button>
+                            <button class="score-btn minus1 ${s==-1?'active':''}" onclick="setRoundScore(${i}, -1, this)">-1 (패)</button>
+                            <button class="score-btn minus2 ${s==-2?'active':''}" onclick="setRoundScore(${i}, -2, this)">-2 (더블패)</button>
+                        </div>
+                    </div>
+                `;
+                histContainer.appendChild(div);
+            }
+
+            for (let i = 1; i < round; i++) {
+                if (savedHistoryInputs[i]) {
+                    document.getElementById(`hist-p0-${i}`).value = savedHistoryInputs[i].p0;
+                    document.getElementById(`hist-p1-${i}`).value = savedHistoryInputs[i].p1;
+                    checkQuestionMark(i);
+                }
+            }
+            
+            updateCardUI(); 
+        }
+
+        async function searchGTO() {
+            let playedCards = getPlayedCards();
+            let currentHand = Array.from(selectedHands).filter(c => !playedCards.has(c));
+
+            if (currentHand.length === 0) return alert("현재 손에 남은 카드가 없습니다!");
+            
+            const player = document.getElementById('player').value;
+            const round = parseInt(document.getElementById('round').value);
+
+            let history = [];
+            for (let i = 1; i < round; i++) {
+                let p0Input = document.getElementById(`hist-p0-${i}`);
+                let p1Input = document.getElementById(`hist-p1-${i}`);
+                if (!p0Input || !p1Input) return alert(`${i}라운드 카드를 채워주세요.`);
+                
+                let p0Val = p0Input.value.trim();
+                let p1Val = p1Input.value.trim();
+                if (!p0Val || !p1Val) return alert(`${i}라운드 카드를 채워주세요.`);
+                
+                let isP0_OOP = (i % 2 !== 0);
+                let oopVal = isP0_OOP ? p0Val : p1Val;
+                let ipVal = isP0_OOP ? p1Val : p0Val;
+                let scoreP0 = (player === 'P0') ? roundScores[i] : -roundScores[i];
+                history.push({ oop: oopVal, ip: ipVal, score_p0: scoreP0 });
+            }
+
+            const reqData = { player, current_round: round, hand: currentHand, color: document.getElementById('color').value, history };
+            const resultBox = document.getElementById('result-box');
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '<div style="color:#0fbcf9;">데이터베이스 탐색 및 기댓값 연산 중...</div>';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/search_db`, { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqData) 
+                });
+                const data = await response.json();
+
+                if (data.status === "success") {
+                    let html = data.msg ? `<div style="color:#ffdd59; margin-bottom:10px;">${data.msg}</div>` : "";
+                    
+                    if (data.ev && data.ev !== "계산 불가") {
+                        let evVal = parseFloat(data.ev);
+                        let evColor = evVal > 0 ? "#0be881" : (evVal < 0 ? "#ff3f34" : "#f1c40f");
+                        html += `<div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid ${evColor}; text-align: left;">
+                                    <span style="color:#d2dae2; font-size:13px;">🔮 이후 예상 승점 (EV)</span><br>
+                                    <span style="color:${evColor}; font-size: 20px; font-weight: bold;">${data.ev} 점</span>
+                                 </div>`;
+                    }
+                    
+                    html += `<div style="color: #0be881; font-weight: bold; margin-bottom:10px;">🎯 최적 GTO 전략 (1% 양자화)</div>`;
+                    
+                    data.strategy.split(",").forEach(act => {
+                        if (act.includes(":")) {
+                            const [card, prob] = act.split(":");
+                            const percent = Math.round(parseFloat(prob) * 100).toString(); 
+                            if (percent !== "0") {
+                                let co = blackCards.includes(parseInt(card)) ? "#0fbcf9" : "#ff3f34";
+                                html += ` ▶ <span style="color:${co}; font-weight:bold;">카드 ${card.padStart(2, ' ')}</span> : <span style="color:#fff;">${percent.padStart(3, ' ')} %</span><br>`;
+                            }
+                        }
+                    });
+                    html += `<div style="color: #95a5a6; font-size:11px; margin-top:10px; border-top:1px solid #444; padding-top:5px;">연산: ${data.calc_time}</div>`;
+                    resultBox.innerHTML = html;
+                } else {
+                    resultBox.innerHTML = `<div style="color: #ff3f34;">❌ ${data.error}</div>`;
+                }
+            } catch (error) { resultBox.innerHTML = `<div style="color: #ff3f34;">서버 통신 오류! 백엔드가 켜져있는지 확인하세요.</div>`; }
+        }
+
+        async function calcExactEV() {
+            const round = parseInt(document.getElementById('round').value);
+            const target = 6 - round;
+            
+            const playedCards = getPlayedCards();
+            
+            const p0Hand = Array.from(exactP0Hands).filter(c => !playedCards.has(c));
+            const p1Hand = Array.from(exactP1Hands).filter(c => !playedCards.has(c));
+            
+            if (p0Hand.length !== target || p1Hand.length !== target) {
+                return alert(`현재 ${round}라운드입니다.\n\n상단 히스토리에 입력된 카드를 제외하고, 순수하게 남은 패가 P0와 P1 모두 각각 **${target}장**이 되어야 합니다.\n\n(자동 필터링된 남은 패: P0 ${p0Hand.length}장, P1 ${p1Hand.length}장)`);
+            }
+            
+            const combinedHand = new Set([...p0Hand, ...p1Hand]);
+            if (combinedHand.size !== p0Hand.length + p1Hand.length) {
+                return alert("치명적 오류! P0와 P1의 남은 패가 중복되었습니다. 다시 확인하세요.");
+            }
+            
+            let history = [];
+            for (let i = 1; i < round; i++) {
+                let p0Input = document.getElementById(`hist-p0-${i}`);
+                let p1Input = document.getElementById(`hist-p1-${i}`);
+                if (!p0Input || !p1Input) return alert(`상단 히스토리에서 ${i}라운드 카드를 채워주세요.`);
+                
+                let p0Val = p0Input.value.trim();
+                let p1Val = p1Input.value.trim();
+                if (!p0Val || !p1Val) return alert(`상단 히스토리에서 ${i}라운드 카드를 채워주세요.`);
+                if (p0Val === '?' || p1Val === '?') return alert("수학적 절대 기댓값 연산을 위해 상단 히스토리에 '?'가 없어야 합니다.");
+                
+                let isP0_OOP = (i % 2 !== 0);
+                let oopVal = isP0_OOP ? p0Val : p1Val;
+                let ipVal = isP0_OOP ? p1Val : p0Val;
+                
+                history.push({ oop: oopVal, ip: ipVal, score_p0: 0 }); 
+            }
+
+            const reqData = { p0_hand: p0Hand, p1_hand: p1Hand, current_round: round, history: history };
+            const resBox = document.getElementById('exact-ev-result');
+            resBox.style.display = 'block';
+            resBox.innerHTML = '<span style="color:#f39c12;">수학적 절대 기댓값(Exact EV) 연산 중...</span>';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/calc_exact_ev`, { 
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqData) 
+                });
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    let evVal = parseFloat(data.ev);
+                    let evColor = evVal > 0 ? "#0be881" : (evVal < 0 ? "#ff3f34" : "#f1c40f");
+                    resBox.innerHTML = `
+                        <div style="font-size: 13px; color: #d2dae2; margin-bottom: 5px;">🔮 잔여 라운드 맞교환 시 P0 예상 승점</div>
+                        <div style="font-size: 26px; font-weight: bold; color: ${evColor};">${data.ev} 점</div>
+                        <div style="font-size: 11px; color: #95a5a6; margin-top: 5px;">연산 소요: ${data.calc_time}</div>
+                    `;
+                } else {
+                    resBox.innerHTML = `<span style="color:#ff3f34;">❌ ${data.error}</span>`;
+                }
+            } catch(e) {
+                resBox.innerHTML = `<span style="color:#ff3f34;">서버 통신 오류! 백엔드가 켜져있는지 확인하세요.</span>`;
+            }
+        }
+
+        initAllCardGrids();
+        updateUI();
+    </script>
+</body>
+</html>

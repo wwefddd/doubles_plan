@@ -1,0 +1,11 @@
+# 데이터베이스 및 무거운 기보 파일 무시
+*.db
+*.sqlite3
+*.pkl
+human_save_data/
+tsumego_puzzles/
+
+# 파이썬 캐시 및 가상환경 무시
+__pycache__/
+venv/
+.env

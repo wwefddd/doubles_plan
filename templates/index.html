@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Double's Plan Universe</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #2c3e50; color: white; margin: 0; padding: 10px; }
+        h2 { margin-bottom: 5px; color: #0fbcf9; }
+        
+        .view { display: none; max-width: 500px; margin: 0 auto; }
+        .view.active { display: block; }
+
+        .lobby-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin-top: 20px; text-align: left; }
+        .lobby-box h3 { margin-top: 0; color: #f1c40f; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: none; font-size: 15px; box-sizing: border-box;}
+        
+        .btn { width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #0fbcf9; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.1s;}
+        .btn:active { transform: scale(0.98); }
+        .btn-green { background-color: #0be881; color: #1e272e; }
+        .btn-purple { background-color: #9b59b6; }
+        .btn-gray { background-color: #95a5a6; }
+
+        .info-bar { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 16px; font-weight: bold; }
+        .score-text { font-size: 20px; color: #f1c40f; margin: 5px 0;}
+        
+        .opp-area { background: rgba(255, 63, 52, 0.1); border: 1px solid #ff3f34; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .my-area { background: rgba(11, 232, 129, 0.1); border: 1px solid #0be881; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .history-area { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; text-align: left; min-height: 80px;}
+
+        .card-grid { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
+        .card-btn { width: 50px; height: 70px; font-size: 18px; font-weight: bold; border-radius: 5px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; background: #ecf0f1; color: #2c3e50;}
+        .card-btn.black { background: #1e272e; color: #fff; border: 2px solid #0fbcf9; }
+        .card-btn.red { background: #ff3f34; color: #fff; border: 2px solid #ffd32a; }
+        .card-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .card-back { width: 40px; height: 60px; background: #7f8c8d; border-radius: 5px; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;}
+        .color-reveal { width: 50px; height: 70px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; margin: 0 auto; color: white;}
+        .reveal-black { background: #1e272e; border: 2px solid #0fbcf9; }
+        .reveal-red { background: #ff3f34; border: 2px solid #ffd32a; }
+    </style>
+</head>
+<body>
+
+    <h2>👑 Double's Plan Universe</h2>
+
+    <div id="view-lobby" class="view active">
+        <div class="lobby-box">
+            <h3>1. ⚔️ 인간과의 대국 (PvP)</h3>
+            <input type="text" id="pvp-nickname" placeholder="사용할 닉네임 입력">
+            <input type="text" id="pvp-room" placeholder="방 번호 입력">
+            <button class="btn" onclick="startPvP()">방 접속하기</button>
+        </div>
+
+        <div class="lobby-box">
+            <h3>2. 🤖 컴퓨터와 대국 (PvE)</h3>
+            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">GTO 솔버를 상대로 당신의 실력을 테스트하세요!</p>
+            <button class="btn btn-green" onclick="startPvE()">솔버와 대결 시작</button>
+        </div>
+
+        <div class="lobby-box">
+            <h3>3. 🧠 솔버 확인</h3>
+            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">GTO 확률 복기 및 양방향 기댓값(EV) 분석</p>
+            <button class="btn btn-purple" onclick="location.href='/solver'">솔버 분석실 입장하기</button>
+        </div>
+    </div>
+
+    <div id="view-game" class="view">
+        <div class="info-bar">
+            <div id="game-title" style="color:#0fbcf9; margin-bottom:5px;"></div>
+            <div id="game-set-round" style="font-size: 14px; color:#bdc3c7;">1세트 / 1라운드</div>
+            <div id="game-score" class="score-text">[나] 0 점 vs [상대] 0 점</div>
+            <div id="game-msg" style="color:#0be881; font-size:14px; margin-top:5px;">게임 대기 중...</div>
+        </div>
+
+        <div class="opp-area">
+            <div id="opp-name-tag" style="font-weight:bold; margin-bottom:10px; color:#ff3f34;">상대방</div>
+            <div id="opp-hand-container" class="card-grid"></div>
+            <div id="oop-reveal-container" style="margin-top:15px; display:none;">
+                <div style="font-size:12px; margin-bottom:5px;">상대방이 낸 카드 색상 (IP 찬스)</div>
+                <div id="oop-color-box" class="color-reveal"></div>
+            </div>
+        </div>
+
+        <div class="history-area" id="game-history"></div>
+
+        <div class="my-area">
+            <div id="my-name-tag" style="font-weight:bold; margin-bottom:10px; color:#0be881;">내 손패</div>
+            <div id="my-hand-container" class="card-grid"></div>
+        </div>
+
+        <button class="btn btn-gray" onclick="leaveGame()">🚪 로비로 나가기</button>
+    </div>
+
+    <script>
+        // 💡 [STEP 1] 백엔드 서버 주소 설정
+        // 1. 현재 로컬 테스트용
+        const BACKEND_URL = "http://localhost:8000"; 
+        // 2. 나중에 오라클 클라우드 배포 시 아래처럼 변경할 예정입니다.
+        // const BACKEND_URL = "http://[오라클-서버-IP]:8000";
+
+
+
+        const BLACK_CARDS = [1, 2, 10, 11, 12];
+        const RED_CARDS = [3, 4, 5, 6, 7, 8, 9];
+        const clientId = Math.random().toString(36).substring(2, 10);
+        
+        let ws = null;
+        let isPvE = false;
+        
+        // 💡 transitioning 상태가 추가되었습니다!
+        let pveState = { set: 1, round: 1, humanScore: 0, botScore: 0, humanHand: [], botHand: [], history: [], oopCard: null, gameOver: false, msg: "", transitioning: false };
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        // GTO 탐색용 점수
+        function getGTOScore(p0, p1) {
+            if (p0 === 2 * p1) return 2;
+            if (p1 === 2 * p0) return -2;
+            if (p0 > 2 * p1) return -1;
+            if (p1 > 2 * p0) return 1;
+            if (p0 > p1) return 1;
+            return -1;
+        }
+
+        // 실전 게임 점수 계산기 (객체 반환)
+        function getGameScore(p0, p1, set) {
+            if (p0 === p1) return { p0: 0, p1: 0 };
+            const high = Math.max(p0, p1);
+            const low = Math.min(p0, p1);
+            const isP0High = p0 > p1;
+            
+            let winType = 'basic';
+            let winnerP0 = false;
+            
+            if (high === low * 2) {
+                winType = 'double';
+                winnerP0 = isP0High;
+            } else if (high > low * 2) {
+                winType = 'comeback';
+                winnerP0 = !isP0High;
+            } else {
+                winType = 'basic';
+                winnerP0 = isP0High;
+            }
+            
+            let pts = 0;
+            if (set === 1) pts = 1;
+            else if (set === 2) pts = (winType === 'double') ? 2 : 1;
+            else pts = (winType === 'double') ? 4 : 2;
+            
+            return { p0: winnerP0 ? pts : 0, p1: winnerP0 ? 0 : pts };
+        }
+
+        // ==========================================
+        // 🎮 PvP (웹소켓 실시간 멀티플레이)
+        // ==========================================
+        function startPvP() {
+            const nickname = document.getElementById('pvp-nickname').value.trim();
+            const roomId = document.getElementById('pvp-room').value.trim();
+            if (!nickname || !roomId) return alert("닉네임과 방 번호를 입력하세요!");
+
+            isPvE = false;
+            switchView('view-game');
+            document.getElementById('game-title').innerText = `⚔️ PvP 방: ${roomId}`;
+            document.getElementById('game-msg').innerText = "서버 연결 중...";
+
+            // 💡 [수정됨] 백엔드 주소를 동적으로 변환하여 웹소켓 연결
+            const wsProtocol = BACKEND_URL.startsWith("https") ? "wss://" : "ws://";
+            const wsHost = BACKEND_URL.replace(/^https?:\/\//, "");
+            const wsUrl = `${wsProtocol}${wsHost}/ws_pvp/${roomId}/${clientId}/${encodeURIComponent(nickname)}`;
+            ws = new WebSocket(wsUrl);
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.error) return alert(data.error);
+                if (data.type === "state") renderGameUI(data);
+            };
+            ws.onclose = () => { if (!isPvE) document.getElementById('game-msg').innerText = "서버와 연결이 끊어졌습니다."; };
+        }
+
+        function sendPvPMove(card) {
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "move", card: card }));
+        }
+
+        function leaveGame() {
+            if (ws) { ws.close(); ws = null; }
+            isPvE = false;
+            switchView('view-lobby');
+        }
+
+        // ==========================================
+        // 🤖 PvE (솔버 봇 대전)
+        // ==========================================
+        function generateUniqueHands() {
+            let bPool = [...BLACK_CARDS].sort(() => Math.random() - 0.5);
+            let rPool = [...RED_CARDS].sort(() => Math.random() - 0.5);
+            return {
+                p1: [...bPool.slice(0, 2), ...rPool.slice(0, 3)].sort((a,b)=>a-b),
+                p2: [...bPool.slice(2, 4), ...rPool.slice(3, 6)].sort((a,b)=>a-b)
+            };
+        }
+
+        function startPvE() {
+            isPvE = true;
+            pveState = { set: 1, round: 1, humanScore: 0, botScore: 0, gameOver: false, transitioning: false };
+            switchView('view-game');
+            document.getElementById('game-title').innerText = `🤖 GTO 솔버와 대결`;
+            startPvESet();
+        }
+
+        function startPvESet() {
+            let hands = generateUniqueHands();
+            pveState.humanHand = hands.p1;
+            pveState.botHand = hands.p2;
+            pveState.round = 1;
+            pveState.history = [];
+            pveState.oopCard = null;
+            pveState.msg = `${pveState.set}세트 시작! (총 4세트)`;
+            updatePvEUI();
+            checkBotTurn();
+        }
+
+        async function checkBotTurn() {
+            if (pveState.gameOver || pveState.transitioning) return;
+            
+            let human_is_p0 = (pveState.set % 2 !== 0);
+            let is_p0_oop = (pveState.round % 2 !== 0);
+            let human_is_oop = (human_is_p0 === is_p0_oop);
+
+            let bot_turn = (pveState.oopCard === null) ? !human_is_oop : human_is_oop;
+            
+            if (bot_turn) {
+                pveState.msg = "솔버가 최적의 수를 고민 중입니다...";
+                updatePvEUI();
+
+                let reqPlayer = human_is_p0 ? "P1" : "P0"; 
+                let reqColor = "";
+                if (pveState.oopCard !== null) {
+                    reqColor = BLACK_CARDS.includes(pveState.oopCard) ? "Black" : "Red";
+                }
+
+                let histReq = pveState.history.map(h => ({oop: h.oop.toString(), ip: h.ip.toString(), score_p0: h.score_p0}));
+
+                try {
+                    // 💡 [수정됨] fetch 요청 주소에 BACKEND_URL 적용
+                    const res = await fetch(`${BACKEND_URL}/api/search_db`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ player: reqPlayer, current_round: pveState.round, hand: pveState.botHand, color: reqColor, history: histReq })
+                    });
+                    const data = await res.json();
+                    let chosenCard = pveState.botHand[0]; 
+                    
+                    if (data.status === "success" && data.strategy) {
+                        let r = Math.random() * 100;
+                        let cum = 0;
+                        for (let s of data.strategy.split(",")) {
+                            let parts = s.split(":");
+                            cum += parseFloat(parts[1]) * 100;
+                            if (r <= cum) { chosenCard = parseInt(parts[0]); break; }
+                        }
+                    } else {
+                        chosenCard = pveState.botHand[Math.floor(Math.random() * pveState.botHand.length)];
+                    }
+                    
+                    setTimeout(() => processPvEMove(chosenCard, false), 600);
+                } catch (e) {
+                    processPvEMove(pveState.botHand[Math.floor(Math.random() * pveState.botHand.length)], false);
+                }
+            }
+        }
+
+        function processPvEMove(card, isHuman) {
+            if (pveState.gameOver || pveState.transitioning) return;
+
+            let human_is_p0 = (pveState.set % 2 !== 0);
+            let is_p0_oop = (pveState.round % 2 !== 0);
+            
+            if (isHuman) pveState.humanHand = pveState.humanHand.filter(c => c !== card);
+            else pveState.botHand = pveState.botHand.filter(c => c !== card);
+
+            if (pveState.oopCard === null) {
+                pveState.oopCard = card;
+                pveState.msg = isHuman ? "내가 선공 카드를 냈습니다." : "솔버가 선공 카드를 냈습니다.";
+                updatePvEUI();
+                checkBotTurn();
+            } else {
+                let ipCard = card;
+                let p0Card = is_p0_oop ? pveState.oopCard : ipCard;
+                let p1Card = is_p0_oop ? ipCard : pveState.oopCard;
+                
+                if (!isHuman) {
+                    p0Card = is_p0_oop ? pveState.oopCard : ipCard;
+                    p1Card = is_p0_oop ? ipCard : pveState.oopCard;
+                } else {
+                    p0Card = is_p0_oop ? pveState.oopCard : ipCard;
+                    p1Card = is_p0_oop ? ipCard : pveState.oopCard;
+                }
+
+                let gto_score_p0 = getGTOScore(p0Card, p1Card);
+                let actual_score = getGameScore(p0Card, p1Card, pveState.set);
+                
+                let my_pts = human_is_p0 ? actual_score.p0 : actual_score.p1;
+                let bot_pts = human_is_p0 ? actual_score.p1 : actual_score.p0;
+                
+                pveState.humanScore += my_pts;
+                pveState.botScore += bot_pts;
+                
+                pveState.history.push({ oop: pveState.oopCard, ip: ipCard, score_p0: gto_score_p0 });
+                
+                let round_msg = "";
+                if (my_pts > 0) round_msg = `내가 승리! (+${my_pts}점)`;
+                else if (bot_pts > 0) round_msg = `솔버 승리! (+${bot_pts}점)`;
+                else round_msg = "무승부!";
+
+                pveState.msg = `${pveState.round}라운드 종료: 내 카드(${isHuman ? ipCard : pveState.oopCard}) vs 봇(${isHuman ? pveState.oopCard : ipCard}) ➔ ${round_msg}`;
+                
+                pveState.oopCard = null;
+                pveState.round += 1;
+                
+                // 💡 [버그 완벽 수정] 5라운드 강제 고정 및 전환 락(Lock) 적용
+                if (pveState.round > 5) {
+                    pveState.round = 5; 
+                    if (pveState.set >= 4) {
+                        pveState.gameOver = true;
+                        let winner = pveState.humanScore > pveState.botScore ? "🎉 당신의 승리!" : (pveState.botScore > pveState.humanScore ? "😭 솔버의 승리!" : "🤝 무승부!");
+                        pveState.msg = `게임 종료! ${winner}`;
+                    } else {
+                        pveState.transitioning = true;
+                        pveState.msg += " (2초 뒤 다음 세트 시작)";
+                        setTimeout(() => {
+                            pveState.set += 1;
+                            pveState.transitioning = false;
+                            startPvESet();
+                        }, 2000); 
+                    }
+                }
+                
+                updatePvEUI();
+                if (!pveState.transitioning) checkBotTurn();
+            }
+        }
+
+        function updatePvEUI() {
+            let human_is_p0 = (pveState.set % 2 !== 0);
+            let is_p0_oop = (pveState.round % 2 !== 0);
+            let my_is_oop = (human_is_p0 === is_p0_oop);
+            let my_turn = (pveState.oopCard === null) ? my_is_oop : !my_is_oop;
+            
+            let oop_color = null;
+            if (pveState.oopCard !== null && my_turn) oop_color = BLACK_CARDS.includes(pveState.oopCard) ? "Black" : "Red";
+
+            renderGameUI({
+                set: pveState.set, round: pveState.round,
+                my_name: "인간 (나)", opp_name: "GTO 솔버",
+                my_score: pveState.humanScore, opp_score: pveState.botScore,
+                my_hand: pveState.humanHand, opp_hand_count: pveState.botHand.length,
+                oop_color: oop_color, history: pveState.history,
+                msg: pveState.msg, my_turn: my_turn, my_is_p0: human_is_p0, my_is_oop: my_is_oop,
+                game_over: pveState.gameOver, waiting: false, transitioning: pveState.transitioning
+            });
+        }
+
+        // ==========================================
+        // 🎨 통합 화면 렌더링 함수
+        // ==========================================
+        function renderGameUI(state) {
+            document.getElementById('game-set-round').innerText = `${state.set} 세트 / ${state.round} 라운드`;
+            document.getElementById('game-score').innerText = `[나] ${state.my_score} 점  vs  [상대] ${state.opp_score} 점`;
+            document.getElementById('game-msg').innerText = state.msg;
+            
+            let oppHTML = "";
+            for (let i = 0; i < state.opp_hand_count; i++) oppHTML += `<div class="card-back">?</div>`;
+            document.getElementById('opp-hand-container').innerHTML = oppHTML;
+
+            let colorBox = document.getElementById('oop-reveal-container');
+            if (state.oop_color && state.my_turn) {
+                colorBox.style.display = 'block';
+                let cb = document.getElementById('oop-color-box');
+                cb.className = "color-reveal " + (state.oop_color === "Black" ? "reveal-black" : "reveal-red");
+                cb.innerText = state.oop_color === "Black" ? "검정" : "빨강";
+            } else { colorBox.style.display = 'none'; }
+
+            let myHTML = "";
+            state.my_hand.forEach(c => {
+                let colorClass = BLACK_CARDS.includes(c) ? 'black' : 'red';
+                // 💡 전환 중일 때 무조건 버튼 비활성화 (꼬임 방지)
+                let disabled = (!state.my_turn || state.waiting || state.game_over || state.transitioning) ? "disabled" : "";
+                let onClickStr = isPvE ? `processPvEMove(${c}, true)` : `sendPvPMove(${c})`;
+                myHTML += `<button class="card-btn ${colorClass}" onclick="${onClickStr}" ${disabled}>${c}</button>`;
+            });
+            document.getElementById('my-hand-container').innerHTML = myHTML;
+
+            let histHTML = "";
+            state.history.forEach((h, idx) => {
+                let myCard = state.my_is_p0 ? (idx%2===0 ? h.oop : h.ip) : (idx%2===0 ? h.ip : h.oop);
+                let oppCard = state.my_is_p0 ? (idx%2===0 ? h.ip : h.oop) : (idx%2===0 ? h.oop : h.ip);
+                
+                let actual_score = getGameScore(state.my_is_p0 ? myCard : oppCard, state.my_is_p0 ? oppCard : myCard, state.set);
+                let my_pts = state.my_is_p0 ? actual_score.p0 : actual_score.p1;
+                let opp_pts = state.my_is_p0 ? actual_score.p1 : actual_score.p0;
+                
+                let resultStr = "";
+                if (my_pts > 0) resultStr = `<span style="color:#0be881;">승리 (+${my_pts}점)</span>`;
+                else if (opp_pts > 0) resultStr = `<span style="color:#ff3f34;">패배 (상대 +${opp_pts}점)</span>`;
+                else resultStr = `<span style="color:#bdc3c7;">무승부</span>`;
+                
+                histHTML += `<div>${idx+1}R: (나) <b>${myCard}</b> vs (상대) <b>${oppCard}</b> ➔ ${resultStr}</div>`;
+            });
+            if (state.history.length === 0) histHTML = "<div style='color:#7f8c8d; text-align:center;'>이번 세트 히스토리가 없습니다.</div>";
+            document.getElementById('game-history').innerHTML = histHTML;
+        }
+    </script>
+</body>
+</html>
