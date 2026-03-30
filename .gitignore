@@ -9,3 +9,7 @@ tsumego_puzzles/
 __pycache__/
 venv/
 .env
+
+# 보안 키 파일 무시 (절대 업로드 금지)
+*.key
+*.pem
