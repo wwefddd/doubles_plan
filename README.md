@@ -1,16 +1,19 @@
-# 👑 Doubles Plan Solver & Game Platform
+# 👑 Double's Plan
 
-> (더블스 플랜)** 게임을 위한 실시간 PvP/PvE 멀티플레이 플랫폼 및 완벽한 수학적 게임 이론(GTO) 기반 EV 분석 솔버입니다.
+> 친구들과 실시간으로 대결하고, 컴퓨터(솔버)와 두뇌 싸움을 펼칠 수 있는 웹 보드게임 플랫폼입니다.
 
 ## ✨ 주요 기능
-1. **⚔️ 인간과의 대국 (PvP):** 웹소켓(WebSocket) 기반 실시간 멀티플레이 지원
-2. **🤖 솔버와 대결 (PvE):** GTO 솔버를 상대로 펼치는 4세트 두뇌 싸움
-3. **🧠 솔버 분석실 (Perfect Info):** 수학적 절대 기댓값(Exact EV) 연산 및 평행우주 전역 탐색 기능
-
-## 🛠️ 기술 스택 (Tech Stack)
-* **Frontend:** HTML5, CSS3, Vanilla JavaScript (GitHub Pages 배포)
-* **Backend:** Python, FastAPI, WebSockets (Oracle Cloud 배포 예정)
-* **Database:** 9.76GB CFR 기반 GTO Strategy DB (SQLite)
+1. **🤝 친구와 대결하기:** 다른 사람과 방을 만들어 실시간으로 즐기는 4세트 두뇌 싸움!
+2. **🤖 솔버와 대결하기:** 무자비한(?) 컴퓨터 솔버를 상대로 당신의 실력을 테스트해 보세요.
+3. **🧠 솔버 분석실:** 게임이 끝난 후, 내 패를 입력하면 솔버가 '가장 완벽했던 최적의 수'와 '예상 승점'을 친절하게 복기해 줍니다.
 
 ## 🎮 웹에서 바로 플레이하기
-👉 [Doubles Plan 플레이하기](https://wwefddd.github.io/doubles_plan/) (현재 프론트엔드 배포 완료, 백엔드 서버 연동 진행 중)
+👉 [Double's Plan 플레이하기](https://wwefddd.github.io/doubles_plan/) 
+(현재 누구나 웹과 모바일에서 바로 접속하여 즐길 수 있습니다!)
+
+---
+
+### 🛠️ 개발 정보 (Tech Stack)
+* **Frontend:** HTML5, Vanilla JavaScript (GitHub Pages)
+* **Backend:** Python, FastAPI, WebSockets (Oracle Cloud)
+* **Database:** 약 10GB의 최적화 전략 데이터베이스 탑재
