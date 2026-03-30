@@ -54,7 +54,7 @@
         
         <button class="btn-nav" onclick="location.href='index.html'">🚪 메인 로비로 돌아가기</button>
 
-        <h2>⚡ 초고속 DB 뷰어 (스마트 패관리)</h2>
+        <h2>⚡ 솔버 분석실 </h2>
         
         <div class="section">
             <div class="row">
@@ -66,7 +66,7 @@
                 <select id="round" onchange="updateUI()">
                     <option value="1">1 R</option><option value="2">2 R</option><option value="3">3 R</option><option value="4">4 R</option><option value="5">5 R</option>
                 </select>
-                <div id="pos-display" class="pos-label">IP (후공)</div>
+                <div id="pos-display" class="pos-label">후공</div>
             </div>
             <div class="row" id="color-section" style="display: none; justify-content: center; gap: 10px; margin-top: 5px;">
                 <label style="color: #ffdd59; font-weight: bold;">상대 낸 색깔:</label>
@@ -85,7 +85,7 @@
             <div id="history-inputs" style="margin-top: 5px;"></div>
         </div>
 
-        <button class="btn-search" onclick="searchGTO()">🚀 1. 내 패 기준 GTO 탐색 & 평균 EV 계산</button>
+        <button class="btn-search" onclick="searchGTO()">🚀 1. 내 패 기준 솔버 탐색 & 평균 승점 계산</button>
         <div id="result-box"></div>
 
         <div class="section" style="margin-top: 25px; border: 2px dashed #0fbcf9; background: rgba(15, 188, 249, 0.05);">
@@ -107,7 +107,6 @@
             <div id="exact-ev-result" style="margin-top: 15px; padding: 12px; background-color: #000; border-radius: 8px; font-family: monospace; display: none;"></div>
         </div>
 
-        <button class="btn-nav" style="margin-top: 20px; margin-bottom: 0;" onclick="location.href='/'">🚪 메인 로비로 돌아가기</button>
 
     </div>
 
@@ -291,7 +290,7 @@
             let isOOP = (player === "P0") ? (round % 2 !== 0) : (round % 2 === 0);
 
             const posDisplay = document.getElementById('pos-display');
-            posDisplay.innerText = isOOP ? "선공 (OOP)" : "후공 (IP)";
+            posDisplay.innerText = isOOP ? "선공" : "후공";
             posDisplay.style.color = isOOP ? "#ff9f43" : "#0be881";
             document.getElementById('color-section').style.display = isOOP ? "none" : "flex";
 
@@ -390,7 +389,7 @@
                                  </div>`;
                     }
                     
-                    html += `<div style="color: #0be881; font-weight: bold; margin-bottom:10px;">🎯 최적 GTO 전략 (1% 양자화)</div>`;
+                    html += `<div style="color: #0be881; font-weight: bold; margin-bottom:10px;">🎯 솔버 추천 최적 전략</div>`;
                     
                     data.strategy.split(",").forEach(act => {
                         if (act.includes(":")) {

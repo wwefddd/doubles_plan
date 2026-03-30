@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Double's Plan Universe</title>
+    <title>Double's Plan</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #2c3e50; color: white; margin: 0; padding: 10px; }
         h2 { margin-bottom: 5px; color: #0fbcf9; }
@@ -54,13 +54,13 @@
 
         <div class="lobby-box">
             <h3>2. 🤖 컴퓨터와 대국 (PvE)</h3>
-            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">GTO 솔버를 상대로 당신의 실력을 테스트하세요!</p>
+            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">컴퓨터 솔버를 상대로 당신의 실력을 테스트하세요!</p>
             <button class="btn btn-green" onclick="startPvE()">솔버와 대결 시작</button>
         </div>
 
         <div class="lobby-box">
             <h3>3. 🧠 솔버 확인</h3>
-            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">GTO 확률 복기 및 양방향 기댓값(EV) 분석</p>
+            <p style="font-size: 13px; color: #bdc3c7; margin-top: 0;">최적 확률 복기 및 양방향 예상 승점 분석</p>
             <button class="btn btn-purple" onclick="location.href='index_db.html'">솔버 분석실 입장하기</button>
         </div>
     </div>
@@ -77,7 +77,7 @@
             <div id="opp-name-tag" style="font-weight:bold; margin-bottom:10px; color:#ff3f34;">상대방</div>
             <div id="opp-hand-container" class="card-grid"></div>
             <div id="oop-reveal-container" style="margin-top:15px; display:none;">
-                <div style="font-size:12px; margin-bottom:5px;">상대방이 낸 카드 색상 (IP 찬스)</div>
+                <div style="font-size:12px; margin-bottom:5px;">상대방이 낸 카드 색상</div>
                 <div id="oop-color-box" class="color-reveal"></div>
             </div>
         </div>
